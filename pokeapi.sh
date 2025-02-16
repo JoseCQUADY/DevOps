@@ -1,53 +1,37 @@
 #!/bin/bash
 
-# Verificar si se proporcionó un argumento
+# Verificar si se pasó un parámetro
 if [ -z "$1" ]; then
-    echo "Uso: $0 <nombre_pokemon>"
-    exit 1
+  echo "Por favor, ingresa el nombre de un Pokémon."
+  exit 1
 fi
 
-POKEMON_NAME=$(echo "$1" | tr '[:upper:]' '[:lower:]') # Convertir a minúsculas
-API_URL="https://pokeapi.co/api/v2/pokemon/$POKEMON_NAME"
-CSV_FILE="pokemon_data.csv"
+# Nombre del Pokémon desde el primer parámetro
+pokemon_name=$1
 
-# Consultar la API y almacenar la respuesta con el código de estado
-HTTP_RESPONSE=$(curl -s -w "%{http_code}" -o response.json "$API_URL")
+# Realizar la consulta a la PokeAPI
+response=$(curl -s "https://pokeapi.co/api/v2/pokemon/$pokemon_name")
 
-# Verificar si la respuesta es 200 (OK)
-if [ "$HTTP_RESPONSE" -ne 200 ]; then
-    echo "Error: No se encontró el Pokémon '$POKEMON_NAME' o la API no está disponible."
-    rm -f response.json # Eliminar respuesta inválida
-    exit 1
+# Verificar si la respuesta contiene un error (si el Pokémon no existe)
+if echo "$response" | jq -e '.detail' > /dev/null; then
+  echo "El Pokémon '$pokemon_name' no fue encontrado."
+  exit 1
 fi
 
-# Verificar que el archivo JSON es válido antes de procesarlo
-if ! jq empty response.json > /dev/null 2>&1; then
-    echo "Error: La respuesta de la API no es válida."
-    rm -f response.json
-    exit 1
-fi
+# Parsear la respuesta JSON usando jq
+id=$(echo "$response" | jq '.id')
+name=$(echo "$response" | jq -r '.name')
+weight=$(echo "$response" | jq '.weight')
+height=$(echo "$response" | jq '.height')
+order=$(echo "$response" | jq '.order')
 
-# Extraer datos con jq
-ID=$(jq -r '.id' response.json)
-NAME=$(jq -r '.name' response.json)
-WEIGHT=$(jq -r '.weight' response.json)
-HEIGHT=$(jq -r '.height' response.json)
-ORDER=$(jq -r '.order' response.json)
+# Imprimir los resultados
+echo "$name (No. $id)"
+echo "Id = $id"
+echo "Weight = $weight"
+echo "Height = $height"
+echo "Order = $order"
+echo ""
 
-# Imprimir los datos
-echo "$NAME (No. $ID)"
-echo "Id = $ID"
-echo "Weight = $WEIGHT"
-echo "Height = $HEIGHT"
-echo "Order = $ORDER"
-
-# Verificar si el archivo CSV existe, si no, agregar la cabecera
-if [ ! -f "$CSV_FILE" ]; then
-    echo "id,name,weight,height,order" > "$CSV_FILE"
-fi
-
-# Agregar los datos al archivo CSV
-echo "$ID,$NAME,$WEIGHT,$HEIGHT,$ORDER" >> "$CSV_FILE"
-
-# Limpiar archivo temporal
-rm -f response.json
+# Guardar los resultados en un archivo CSV (concatenado)
+echo "$id,$name,$weight,$height,$order" >> pokemon_data.csv
