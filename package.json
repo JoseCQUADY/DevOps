@@ -1,0 +1,16 @@
+{
+  "name": "api_sicei",
+  "version": "1.0.0",
+  "description": "A simple API REST for DevOps course",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "test": ""
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
